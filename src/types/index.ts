@@ -4,6 +4,13 @@ export interface DocumentTab {
   type: 'md' | 'pdf' | 'txt' | 'other';
   content: string;
   isActive: boolean;
+  pageId?: string; // Which page this document belongs to
+}
+
+export interface Heading {
+  id: string;
+  level: number;
+  text: string;
 }
 
 export interface ContextFile {
@@ -11,6 +18,7 @@ export interface ContextFile {
   filename: string;
   filetype: string;
   metadata: string;
+  content: string;
 }
 
 export interface LibraryFolder {
@@ -24,6 +32,8 @@ export interface LibraryFile {
   id: string;
   filename: string;
   filetype: string;
+  content: string;
+  metadata?: string;
 }
 
 export interface Page {
@@ -36,6 +46,7 @@ export interface Page {
 export interface PageDocument {
   id: string;
   name: string;
+  tabId: string; // Links to DocumentTab
 }
 
 export interface Seed {
@@ -44,6 +55,8 @@ export interface Seed {
   filename: string;
   filetype: string;
   preview: string;
+  sourceId?: string; // ID of context file or library file
+  relevantText?: string; // The text in the editor this seed relates to
 }
 
 export interface Framework {
@@ -51,12 +64,14 @@ export interface Framework {
   name: string;
   subtitle: string;
   description: string;
+  prompt?: string; // AI prompt to apply this framework
 }
 
 export interface Style {
   id: string;
   authorName: string;
   preview: string;
+  systemPrompt?: string; // AI system prompt for this style
 }
 
 export interface RoleDefinition {
@@ -65,6 +80,12 @@ export interface RoleDefinition {
   deliverables: string;
   methodStack: string;
   influences: string;
+}
+
+export interface AIConfig {
+  apiKey: string;
+  model: string;
+  baseUrl?: string;
 }
 
 export type RightSidebarTab = 'seeds' | 'frameworks' | 'role';

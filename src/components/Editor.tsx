@@ -6,26 +6,27 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import { Plus, GripVertical } from 'lucide-react';
 import { useApp } from '../store/AppContext';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { BottomToolbar } from './BottomToolbar';
-
-const initialContent = `<h1>Generate typical text styles</h1>
-<p>Lorem ipsum dolor sit amet consectetur. Dolor non posuere odio pellentesque aliquet ut velit massa. At dui aliquet nisl eget dolor proin arcu diam.</p>
-<p><u>Lorem ipsum dolor sit amet consectetur</u>. Dolor non posuere odio pellentesque aliquet ut velit massa. At dui aliquet nisl eget dolor proin arcu diam <span class="ghost-text">ghost writing autocomplete feature style</span></p>
-<ul>
-<li>Bullet</li>
-<li>Bullet</li>
-</ul>
-<ol>
-<li>Bullet</li>
-<li>Bullet</li>
-</ol>
-<p><mark data-color="yellow" class="highlight-yellow">When a relevant seed appears relating to a text block, it's highlighted in the matching colour.</mark> Dolor non posuere odio pellentesque</p>
-<p><mark data-color="pink" class="highlight-pink">When a relevant seed appears relating to a text block, it's highlighted in the matching colour.</mark> Dolor non posuere odio pellentesque</p>`;
+import type { Heading } from '../types';
 
 export function Editor() {
-  const { setEditorContent, ghostText } = useApp();
+  const {
+    documentTabs,
+    activeTabId,
+    updateTabContent,
+    ghostText,
+    setGhostText,
+    generateGhostText,
+    setHeadings,
+    editorScrollRef,
+    aiConfig,
+  } = useApp();
+
   const [hoveredBlock, setHoveredBlock] = useState<number | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const activeTab = documentTabs.find(t => t.id === activeTabId);
 
   const editor = useEditor({
     extensions: [
@@ -48,29 +49,91 @@ export function Editor() {
         },
       }),
     ],
-    content: initialContent,
+    content: activeTab?.content || '',
     onUpdate: ({ editor }) => {
-      setEditorContent(editor.getHTML());
+      if (activeTabId) {
+        updateTabContent(activeTabId, editor.getHTML());
+      }
+
+      // Extract headings
+      const headingElements = editor.view.dom.querySelectorAll('h1, h2, h3');
+      const extractedHeadings: Heading[] = [];
+
+      headingElements.forEach((el, index) => {
+        const level = parseInt(el.tagName[1]);
+        const text = el.textContent || '';
+        const id = `heading-${index}`;
+
+        // Add data attribute for scroll targeting
+        el.setAttribute('data-heading-id', id);
+
+        extractedHeadings.push({ id, level, text });
+      });
+
+      setHeadings(extractedHeadings);
+
+      // Generate ghost text with debounce
+      if (aiConfig.apiKey) {
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+
+        const text = editor.getText();
+        if (text.length > 20 && text.length < 5000) {
+          debounceRef.current = setTimeout(() => {
+            const lastParagraph = text.split('\n').filter(Boolean).pop() || '';
+            if (lastParagraph.length > 10) {
+              generateGhostText(lastParagraph);
+            }
+          }, 2000);
+        }
+      }
     },
   });
 
-  // Add ghost text on certain conditions
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Tab' && ghostText && editor) {
-      e.preventDefault();
-      // Insert ghost text at cursor position
-      editor.commands.insertContent(ghostText);
+  // Sync editor content when active tab changes
+  useEffect(() => {
+    if (editor && activeTab) {
+      const currentContent = editor.getHTML();
+      if (currentContent !== activeTab.content) {
+        editor.commands.setContent(activeTab.content || '');
+      }
     }
-  }, [ghostText, editor]);
+  }, [activeTabId, editor]);
+
+  // Handle ghost text insertion with Tab key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Tab' && ghostText && editor && !e.shiftKey) {
+      e.preventDefault();
+      editor.commands.insertContent(ghostText);
+      setGhostText('');
+    }
+  }, [ghostText, editor, setGhostText]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  // Clear ghost text when typing
+  useEffect(() => {
+    if (editor) {
+      const handleInput = () => {
+        if (ghostText) {
+          setGhostText('');
+        }
+      };
+
+      editor.on('update', handleInput);
+      return () => {
+        editor.off('update', handleInput);
+      };
+    }
+  }, [editor, ghostText, setGhostText]);
+
   return (
     <>
-      <div className="flex-1 bg-app-bg overflow-y-auto">
+      <div ref={editorScrollRef as React.RefObject<HTMLDivElement>} className="flex-1 bg-app-bg overflow-y-auto">
         <div className="max-w-3xl mx-auto py-12 px-8">
           {/* Block controls shown on hover */}
           <div className="relative">
@@ -86,18 +149,29 @@ export function Editor() {
               </button>
             </div>
 
-            <EditorContent
-              editor={editor}
-              className="prose prose-invert max-w-none"
-              onMouseMove={(e) => {
-                // Simple hover detection for block controls
-                const target = e.target as HTMLElement;
-                if (target.closest('.ProseMirror')) {
-                  setHoveredBlock(0);
-                }
-              }}
-              onMouseLeave={() => setHoveredBlock(null)}
-            />
+            <div className="relative">
+              <EditorContent
+                editor={editor}
+                className="prose prose-invert max-w-none"
+                onMouseMove={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (target.closest('.ProseMirror')) {
+                    setHoveredBlock(0);
+                  }
+                }}
+                onMouseLeave={() => setHoveredBlock(null)}
+              />
+
+              {/* Ghost text overlay */}
+              {ghostText && editor && (
+                <div className="pointer-events-none absolute bottom-4 left-0 right-0">
+                  <div className="text-text-muted text-sm opacity-50 italic">
+                    {ghostText}
+                    <span className="ml-2 text-xs text-text-secondary">(Tab to insert)</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
