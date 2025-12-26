@@ -135,45 +135,9 @@ interface AppContextType {
   editorScrollRef: RefObject<HTMLDivElement | null>;
 }
 
-// Default frameworks
-const defaultFrameworks: Framework[] = [
-  {
-    id: uuidv4(),
-    name: "McLuhan's Tetrad",
-    subtitle: 'Laws of Media',
-    description: 'Four questions for any medium/technology: What does it enhance? What does it obsolesce? What does it retrieve from the past? What does it reverse into when pushed to extremes?',
-    prompt: 'Analyze the following text using McLuhan\'s Tetrad framework. For the subject matter discussed, identify: 1) What does it ENHANCE or intensify? 2) What does it make OBSOLETE or displace? 3) What does it RETRIEVE that was previously obsolesced? 4) What does it REVERSE or flip into when pushed to extremes?',
-  },
-  {
-    id: uuidv4(),
-    name: 'Six Thinking Hats',
-    subtitle: 'De Bono',
-    description: 'Parallel thinking using different perspectives (facts, emotions, caution, benefits, creativity, process)',
-    prompt: 'Analyze the following text using the Six Thinking Hats framework: WHITE HAT (facts, data), RED HAT (emotions, intuition), BLACK HAT (caution, risks), YELLOW HAT (benefits, optimism), GREEN HAT (creativity, alternatives), BLUE HAT (process, organization).',
-  },
-];
-
-// Default styles
-const defaultStyles: Style[] = [
-  {
-    id: uuidv4(),
-    authorName: 'Emily Segal (Nemesis)',
-    preview: 'Sharp cultural analysis with fashion-forward prose. Mixes high theory with pop culture.',
-    systemPrompt: 'Write in the style of Emily Segal - sharp, culturally aware prose that blends high theory with contemporary pop culture. Use precise language with occasional unexpected juxtapositions.',
-  },
-  {
-    id: uuidv4(),
-    authorName: 'Jay Springett',
-    preview: 'Systems thinking meets solarpunk optimism. Clear explanations of complex networks.',
-    systemPrompt: 'Write in the style of Jay Springett - systems-oriented thinking with solarpunk optimism. Focus on networks, emergence, and possible futures. Clear and accessible while maintaining depth.',
-  },
-  {
-    id: uuidv4(),
-    authorName: 'Matt Dryhurst',
-    preview: 'Techno-political analysis with artist sensibility. Explores power in digital systems.',
-    systemPrompt: 'Write in the style of Matt Dryhurst - techno-political analysis from an artist\'s perspective. Examine power structures, ownership, and agency in digital systems.',
-  },
-];
+// Default to empty - no placeholder content
+const defaultFrameworks: Framework[] = [];
+const defaultStyles: Style[] = [];
 
 const defaultRole: RoleDefinition = {
   thesis: '',
